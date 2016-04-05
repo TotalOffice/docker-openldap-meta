@@ -1,0 +1,23 @@
+#!/bin/bash
+
+META_TMPL="/tmp/slapd.conf.tmpl"
+META_CONF="/slapd.conf"
+NODE_DIR="/nodes"
+
+# Copy schema
+cp /totaloffice/schema/* /etc/ldap/schema
+
+TEMPFILE=$(tempfile)
+cat ${META_TMPL} >> ${TEMPFILE}
+for node in `ls ${NODE_DIR}`; do
+    # Read the environment
+    source ${NODE_DIR}/${node}/env
+    echo \# $node [${ALIAS}] >> ${TEMPFILE}
+    echo uri \"ldap://${ALIAS}/dc=${ALIAS},dc=meta,dc=yukthi,dc=com\" >> ${TEMPFILE}
+    echo suffixmassage \"dc=${ALIAS},dc=meta,dc=yukthi,dc=com\" \"${LDAP_BASE_DN}\" >> ${TEMPFILE}
+done
+
+mv ${TEMPFILE} ${META_CONF}
+chmod +r ${META_CONF}
+
+slapd -u openldap -g openldap -f ${META_CONF} -h "ldap://" -d stats
